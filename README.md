@@ -1,25 +1,49 @@
 # doctolib-checker
-This little improvised python script is for anyone who books their doctor's appointment via [Doctolib](https://www.doctolib.de). Sometimes the next available appointment is several months away and you do not want to wait that long for your doctor's visit. But sometimes other patients cancel their appointments for various reasons and a free slot appears. This script automatically checks for these shortterm available appointments and notifies you on your pc/smartphone/tablet via [Pushover](https://pushover.net/) when there is a free slot before a specified date available. 
+Script Python pour surveiller les disponibilités Doctolib et notifier via Pushover.
 
-# Setup
-This script has been tested with Python 3.11.9 and just needs the `pyyaml` package:
-- You can install the package with `pip install pyyaml` or `pip3 install pyyaml`.
+## Ce que tu peux faire maintenant
+- Choisir un **docteur par nom**.
+- Vérifier les créneaux **entre 2 dates**.
+- Utiliser une **interface web légère** pour démarrer/arrêter une surveillance en tâche de fond.
+- Garder aussi le mode CLI.
 
-Furthermore, you will need to do some changes in the `config.yaml` for this script to work:
-- The variables `run_in_loop` and `interval_in_seconds` are used in case you want to run this script in a `while`-loop. In this case `run_in_loop` should be `true`. `interval_in_seconds` specifies the interval in second the script will be executed. Alternatively, you can run this script via crontab. In this case you should put `"run_in_loop": false`
-- `alive_check` and `hour_of_alive_check` are used to send a notification at one specific hour in the day in order to signal to you that the script is still running. So if you want this "alive check" to notify you everyday at 15 o'clock just put `"hour_of_alive_check": 15`
+## Installation
+- Python 3.11+
+- Dépendance:
+```bash
+pip install pyyaml
+```
 
-- `limit_date` is the latest date you want your appointment at, in the format of yyyy-mm-dd
-- `start_date` is the date at which the script starts to look for appointments, also in the format of yyyy-mm-dd. If this date is in the past the current date will be chosen
+## Configuration (`config.yaml`)
+- `doctors`: liste de docteurs (`name`, `start_date`, `limit_date`, `url`).
+- Le `url` doit contenir `start_date=%(start_date)s&limit=%(limit)s`.
+- `pushover_credentials`: `api_token` + `user_key`.
 
-- `limit` corresponds to the amount of days the script will check for appointments ahead of the `start_date`. Min. value is 2 and max. value is 15. 
+## Usage
+### 1) Interface web (recommandé)
+```bash
+python doctolib_checker.py --web --host 0.0.0.0 --port 8080
+```
+Puis ouvre `http://localhost:8080`.
 
-- `url` is the Doctolib URL of your appointment overview. This one is a bit complicated but bear with me. There are better ways to this, I know, but this script is improvised :)
-  - First of all you go to your preferred doctor and click through the menus to book an appointment until you can choose specific days and times for your appointment.
-  - Then you go to the network monitor (Ctrl + Shift + E) and reload the page
-  - Once you have done that you click on the last GET-Request and look to the right side of your window
-  - Here you have to copy the URL of the GET-Request and paste it into the config file.
-  - Then you prepare the link for formatting by replacing the part that looks like `start_date=2024-01-01&limit=15` with `start_date=%(start_date)s&limit=%(limit)s`.
-- `pushover_credentials` are the credentials needed in order to send push notifications to your device in case a free appointment has been found. Take a look at the [Pushover API Documentation](https://pushover.net/api) to know what's what.
+Depuis l’UI web tu peux:
+- choisir le docteur,
+- saisir date de début/fin,
+- définir l’intervalle de check (ex: 300s),
+- démarrer/arrêter la surveillance (thread de fond).
 
-That was the setup. It is not as complicated as it looks ;) Have fun!
+### 2) Mode CLI
+```bash
+python doctolib_checker.py --doctor "Dr Martin" --from-date 2026-03-01 --to-date 2026-04-01
+```
+
+### 3) Mode interactif terminal
+```bash
+python doctolib_checker.py --interactive --doctor "Dr Martin"
+```
+
+## Option cron (si tu préfères)
+Si tu veux un check périodique système plutôt qu’un thread en mémoire, ajoute un cron:
+```cron
+*/5 * * * * cd /workspace/doctolib-checker && /usr/bin/python3 doctolib_checker.py --doctor "Dr Martin" --from-date 2026-03-01 --to-date 2026-04-01
+```
